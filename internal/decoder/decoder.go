@@ -76,8 +76,8 @@ func Decode(filename string) ([]byte, error) {
 		for {
 			n, err := f.Read(buf)
 			if n > 0 {
-				for i := 0; i < n; i++ {
-					// Convert to -1.0 to 1.0
+				for i := 0; i < n; i += int(header.NumChannels) {
+					// Use Left channel (first sample)
 					sample := (float64(buf[i]) - 128.0) / 128.0
 					samples = append(samples, sample)
 				}
@@ -88,13 +88,17 @@ func Decode(filename string) ([]byte, error) {
 		}
 	} else if header.BitsPerSample == 16 {
 		// 16-bit samples are signed -32768 to 32767
+		// Read all channels
 		buf := make([]int16, 1024)
 		for {
 			err := binary.Read(f, binary.LittleEndian, &buf)
 			if err == nil {
-				for _, s := range buf {
-					sample := float64(s) / 32768.0
-					samples = append(samples, sample)
+				for i := 0; i < len(buf); i += int(header.NumChannels) {
+					// Use Left channel (first sample)
+					if i < len(buf) {
+						sample := float64(buf[i]) / 32768.0
+						samples = append(samples, sample)
+					}
 				}
 			} else {
 				break
@@ -226,9 +230,11 @@ func processSamples(samples []float64, sampleRate uint32) []byte {
 
 		switch state {
 		case StateFindHeader:
-			if isHeader {
+			// Accept Header (> 600us) or Long (1000Hz, ~500us) as header tone
+			if isHeader || (durationSec > ShortThreshold && durationSec < LongThreshold) {
 				headerCount++
 			} else {
+				// If we had enough header tone, and now we see a Short, it might be the sync bit
 				if headerCount > 50 && isShort { // Reduced header requirement for testing
 					// Check next half-cycle for Sync (Short+Short)
 					if i < len(crossings) {
