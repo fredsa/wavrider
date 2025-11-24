@@ -26,13 +26,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := os.WriteFile(outfile, data, 0644); err != nil {
+		fmt.Printf("Error writing output: %v\n", err)
+		os.Exit(1)
+	}
+
 	if len(data) > 0 {
-		if err := os.WriteFile(outfile, data, 0644); err != nil {
-			fmt.Printf("Error writing output: %v\n", err)
-			os.Exit(1)
-		}
 		fmt.Printf("Decoded %d bytes. Written to %s\n", len(data), outfile)
 	} else {
-		fmt.Println("No data decoded.")
+		fmt.Printf("No data decoded. Created empty file %s\n", outfile)
 	}
 }
