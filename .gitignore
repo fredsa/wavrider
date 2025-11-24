@@ -1,0 +1,8 @@
+# Compiled binary
+/wavrider
+
+# Decoded output files
+output.bin
+
+# OS specific
+.DS_Store
